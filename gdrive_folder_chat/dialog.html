@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <script src ='https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js'></script>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      margin: 0;
+      justify-content: space-between;
+    }
+
+    .input-container {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      margin-bottom: 20px;
+      width: 100%;
+    }
+
+    input[type="text"] {
+      flex-grow: 1;
+      margin-right: 10px;
+      padding: 10px;
+      font-size: 16px;
+    }
+
+    button {
+      background-color: #ADD8E6;
+      color: black;
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      margin-top: 20px;
+      /* Added space for the chat container */
+    }
+
+    .user-message,
+    .bot-message {
+      padding: 10px;
+      border-radius: 5px;
+      margin: 5px 0;
+    }
+
+    .user-message {
+      align-self: flex-end;
+      background-color: #DCF8C6;
+    }
+
+    .bot-message {
+      align-self: flex-start;
+      background-color: #F0F0F0;
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container" id="chatContainer">
+    <!-- Chat messages will be displayed here -->
+  </div>
+  <form id="myForm" onsubmit="submitForm(); return false;" class="input-container">
+    <input type="text" id="userInput" name="userInput" placeholder="Enter your text here">
+    <button type="submit">Submit</button>
+  </form>
+  <script>
+    let chatHistory = [];
+
+function updateChatHistory(userInput, assistantResponse) {
+  // Add the user's query to the chat history
+  if (userInput) {
+    chatHistory.push({ role: 'user', content: userInput });
+  }
+  // Add the assistant's response to the chat history
+  if (assistantResponse) {
+    chatHistory.push({ role: 'assistant', content: assistantResponse });
+  }
+}
+
+function submitForm() {
+  var userInput = document.getElementById('userInput').value;
+  if (userInput.trim() === '') return;
+  
+  // Reset stream state for new question
+  isNewStream = true;
+  lastMessageId = null;
+  
+  displayMessage(userInput, 'user-message', true); 
+  google.script.run.withSuccessHandler(function(optionsString) {
+    const options = JSON.parse(optionsString);
+    fetchAndProcessStream(userInput, options);
+  }).fetchOpenAIResponse(userInput, JSON.stringify(chatHistory));
+  
+  chatHistory.push({ role: 'user', content: userInput }); // Add user input to chat history
+  document.getElementById('userInput').value = ''; // Clear input field after submission
+}
+  async function fetchAndProcessStream(userInput, options) {
+    let url = 'https://api.openai.com/v1/chat/completions';
+    let streamedText = ''
+    const response = await fetch(url, options);
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let isNewStream = true;
+    const processChunk = async ({ done, value }) => {
+      if (done) {
+        chatHistory.push({ role: 'assistant', content: streamedText });
+        displayMessage('DONE123', 'bot-message', isNewStream);
+        return
+        };
+      const chunks = decoder.decode(value, {stream: true});
+      const clean_chunks = chunks.replace('data: [DONE]', '');
+      const split = clean_chunks.split('data: {');
+      split.shift();
+      let response_text = split
+        .map(e => Object.assign({}, JSON.parse('{' + e)))
+        .map(e => e.choices[0].delta.content)
+        .join('')
+        .split('\\n')
+        .join('<br>')
+
+      streamedText += response_text;
+      displayMessage(response_text, 'bot-message', isNewStream);
+      isNewStream = false;
+
+      return reader.read().then(processChunk);
+    };
+    reader.read().then(processChunk).catch(console.error);
+  }
+
+ let lastMessageId = null;
+
+function displayMessage(message, className, isNewStream = false) {
+  let messageElement;
+
+  if (isNewStream || !lastMessageId) {
+    // If it's a new stream or no last message, create a new element
+    messageElement = document.createElement('div');
+    lastMessageId = 'message-' + Date.now(); // Unique ID for the message element
+    messageElement.id = lastMessageId;
+    messageElement.className = className;
+    document.getElementById('chatContainer').appendChild(messageElement);
+  } else {
+    messageElement = document.getElementById(lastMessageId);
+  }
+
+  if(message === 'DONE123') {
+      var converter = new showdown.Converter();
+      let htmlContent = converter.makeHtml(messageElement.innerHTML);
+      messageElement.innerHTML = htmlContent;
+  } else {
+    messageElement.innerHTML += message;
+  }
+
+
+
+}
+  </script>
+</body>
+
+</html>

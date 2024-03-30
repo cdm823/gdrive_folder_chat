@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.worker.min.js"></script>
+</head>
+<body>
+<div id="status">
+  <p>Total Files Processed: <span id="total-files-processed">0</span></p>
+  <div id="google-docs-status" style="display:none;"><p>Google Doc Files Processed: <span id="google-docs-processed">0</span></p></div>
+  <div id="word-files-status" style="display:none;"><p>MS Word Files Processed: <span id="word-files-processed">0</span></p></div>
+  <div id="pdf-files-status" style="display:none;"><p>PDF Files Processed: <span id="pdf-files-processed">0</span></p></div>
+  <div id="pdf-pages-status" style="display:none;"><p>PDF Pages Processed: <span id="pdf-pages-processed">0</span></p></div>
+  <p>Total Size Processed: <span id="total-size-processed">0 bytes</span></p>
+  <p><span id="status-message"></span></p>
+</div>
+  <script>
+    const files = JSON.parse('<?= doc_files ?>');
+    let totalFilesProcessed = 0;
+    let pdfPagesProcessed = 0;
+    let wordDocsProcessed = 0;
+    let googleDocsProcessed = 0;
+    let pdfFilesProcessed = 0; 
+    let totalFileSizeProcessed = 0;
+
+function updateStatus() {
+    document.getElementById('total-files-processed').textContent = totalFilesProcessed;
+    document.getElementById('total-size-processed').textContent = (totalFileSizeProcessed / (1024 * 1024)).toFixed(2) + ' MB';
+    const revealStatus = (idPrefix, count) => {
+        const statusElement = document.getElementById(idPrefix + '-status');
+        const countElement = document.getElementById(idPrefix + '-processed');    
+        if (count > 0) {
+            statusElement.style.display = '';
+            countElement.textContent = count;
+        }
+  }
+    revealStatus('word-files', wordDocsProcessed);
+    revealStatus('google-docs', googleDocsProcessed);
+    revealStatus('pdf-files', pdfFilesProcessed);
+    revealStatus('pdf-pages', pdfPagesProcessed);
+}
+
+    function loadAndProcessFiles(files) {
+      const fileProcessingPromises = files.map((file, index) => {
+        totalFileSizeProcessed += file.size;
+
+        if (file.name.endsWith('.pdf')) {
+          pdfFilesProcessed += 1;
+          totalFilesProcessed += 1;
+          return extractTextFromPdf(file, index);
+        } else if (file.name.endsWith('.docx')) {
+          wordDocsProcessed += 1;
+          totalFilesProcessed += 1;
+          return downloadAndProcessDoc(file, index);
+        } else if (file.mimeType === 'application/vnd.google-apps.document') {
+          googleDocsProcessed += 1;
+          totalFilesProcessed += 1;
+          return downloadAndProcessDoc(file, index);
+        } else {
+          return Promise.resolve(null); // Skip processing.
+        }
+      });
+
+      Promise.all(fileProcessingPromises)
+        .then(file => {
+          google.script.run.chunkAndEmbed(file.filter(Boolean));
+          document.getElementById('status-message').textContent = 'Text processing finished. Starting embeddings...';
+          updateStatus();
+        })
+        .catch(error => {
+          console.error("An error occurred during file processing", error);
+        });
+    }
+
+  function downloadAndProcessDoc(file, index) {
+    const downloadLink = 'https://docs.google.com/document/export?id=' + file.id + '&exportFormat=txt';
+    const options = {
+      headers: {
+        "Authorization": "Bearer " + file.token
+      }
+    };
+    return fetch(downloadLink, options)
+      .then(response => response.text())
+      .then(textData => {
+        file.text = textData;
+        updateStatus();
+        return file;
+      })
+      .catch(error => {
+        console.error('Error downloading or processing DOCX/Google Doc ' + (index + 1) + ': ' + error.message);
+        return Promise.reject(error);
+      });
+  }
+
+  function extractTextFromPdf(file, index) {
+    const url = "https://www.googleapis.com/drive/v3/files/" + file.id + "?alt=media";
+    console.log(url);
+    const options = {
+      headers: {
+        "Authorization": "Bearer " + file.token
+      }
+    };
+    return fetch(url, options)
+      .then(response => response.arrayBuffer())
+      .then(pdfData => {
+        const loadingTask = pdfjsLib.getDocument({data: pdfData});
+        return loadingTask.promise.then(async function(pdf) {
+          let fullText = '';
+          for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+            const page = await pdf.getPage(pageNum);
+            const textContent = await page.getTextContent();
+            const pageText = textContent.items.map(item => item.str).join(' ');
+            fullText += pageText + '\n\n';
+          }
+          file.text = fullText;
+          pdfPagesProcessed += pdf.numPages;
+          updateStatus();
+          return file;
+        }).catch(reason => {
+          console.error('Error in PDF ' + (index + 1) + ': ' + reason);
+          return Promise.reject(reason);
+        });
+      })
+      .catch(error => {
+        console.error('Fetch failed for PDF ' + (index + 1) + ': ' + error.message);
+        return Promise.reject(error);
+      });
+  }
+
+  loadAndProcessFiles(files);
+</script>
+</body>
+</html>
