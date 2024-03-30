@@ -85,7 +85,7 @@ function updateChatHistory(userInput, assistantResponse) {
 }
 
 function submitForm() {
-  var userInput = document.getElementById('userInput').value;
+  const userInput = document.getElementById('userInput').value;
   if (userInput.trim() === '') return;
   
   // Reset stream state for new question
@@ -151,7 +151,7 @@ function displayMessage(message, className, isNewStream = false) {
   }
 
   if(message === 'DONE123') {
-      var converter = new showdown.Converter();
+      let converter = new showdown.Converter();
       let htmlContent = converter.makeHtml(messageElement.innerHTML);
       messageElement.innerHTML = htmlContent;
   } else {
