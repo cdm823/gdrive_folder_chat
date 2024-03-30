@@ -1,6 +1,11 @@
 # gdrive_folder_chat
 Interactive Q&A with Google Drive folder documents, using Google Apps Script and OpenAI's Embedding + GPT models.
 
+<img width="500" alt="Screen Shot 2024-03-30 at 5 15 29 PM" src="https://github.com/cdm823/gdrive_folder_chat/assets/99843743/37cff22e-8ddc-4c48-8c58-f6d481e42424">
+<img width="500" alt="Screen Shot 2024-03-30 at 5 15 40 PM" src="https://github.com/cdm823/gdrive_folder_chat/assets/99843743/9e8737fc-c72b-4be8-91dd-6e2d51a8d601">
+<img width="500" alt="Screen Shot 2024-03-30 at 5 24 02 PM" src="https://github.com/cdm823/gdrive_folder_chat/assets/99843743/de001ba5-6534-49b9-a498-a78e8d4bcba0">
+<img width="500" alt="Screen Shot 2024-03-30 at 5 20 03 PM" src="https://github.com/cdm823/gdrive_folder_chat/assets/99843743/50be175f-56d1-4adb-b225-eaf4b993ef7e">
+
 
 ## Usage
 
