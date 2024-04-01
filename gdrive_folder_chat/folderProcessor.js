@@ -6,13 +6,21 @@ function processFolder() {
     includeItemsFromAllDrives: true,
     supportsAllDrives: true,
   }).name;
-  const filesResponse = Drive.Files.list({
-    includeItemsFromAllDrives: true,
-    supportsAllDrives: true,
-    q: `'${folderId}' in parents and trashed = false`,
-    fields: 'files(id, name, webViewLink, size, createdTime, modifiedTime, parents, mimeType)'
-  });
-  const files = filesResponse.files;
+  let pageToken = null;
+  const files = [];
+  do {
+    const filesResponse = Drive.Files.list({
+      includeItemsFromAllDrives: true,
+      supportsAllDrives: true,
+      q: `'${folderId}' in parents and trashed = false`,
+      fields: 'nextPageToken, files(id, name, webViewLink, size, createdTime, modifiedTime, parents, mimeType)',
+      pageToken: pageToken
+    });
+    if (filesResponse.files && filesResponse.files.length > 0) {
+      files.push(...filesResponse.files);
+    }
+    pageToken = filesResponse.nextPageToken;
+  } while (pageToken);
 
   const oAuthToken = ScriptApp.getOAuthToken();
 
@@ -87,4 +95,3 @@ function chunkText(file) {
 
   return chunks;
 }
-
