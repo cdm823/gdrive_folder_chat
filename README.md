@@ -1,10 +1,15 @@
 # gdrive_folder_chat
-Interactive Q&A with Google Drive folder documents, using Google Apps Script and OpenAI's Embedding + GPT models.
+Interactive Q&A with Google Drive folder documents, using Google Apps Script and OpenAI's Embedding + GPT models. 
 
-<img width="500" alt="Screen Shot 2024-03-30 at 5 15 29 PM" src="https://github.com/cdm823/gdrive_folder_chat/assets/99843743/37cff22e-8ddc-4c48-8c58-f6d481e42424">
-<img width="500" alt="Screen Shot 2024-03-30 at 5 15 40 PM" src="https://github.com/cdm823/gdrive_folder_chat/assets/99843743/9e8737fc-c72b-4be8-91dd-6e2d51a8d601">
-<img width="500" alt="Screen Shot 2024-03-30 at 5 24 02 PM" src="https://github.com/cdm823/gdrive_folder_chat/assets/99843743/de001ba5-6534-49b9-a498-a78e8d4bcba0">
-<img width="500" alt="Screen Shot 2024-03-30 at 5 20 03 PM" src="https://github.com/cdm823/gdrive_folder_chat/assets/99843743/50be175f-56d1-4adb-b225-eaf4b993ef7e">
+Use AI to analyze your documents without leaving G-Drive. ~1000 pages extracted with file metadata, processed and embedded in ~7 seconds.
+
+![gdrive_folder_demo (1)](https://github.com/cdm823/gdrive_folder_chat/assets/99843743/85cccf63-d732-4fc4-bff9-6a8c9b263949)
+
+
+## Why??
+If you're already storing files on Google Drive - you can stay in the same place to Q&A the data quickly and easily. This creates an HTML modal to let the script use browser functionality, getting around some of Apps Scripts (Google's built-in, lightweight scripting platform) limitations. 
+
+This uses Drive API to fetch the file data, PDF.js to extract text if it's a PDF, and Google Sheets to store file metadata + embedding. Another HTML modal is used to Q&A the documents in a conversational way, without leaving Google Sheets.
 
 
 ## Usage
@@ -13,8 +18,8 @@ Interactive Q&A with Google Drive folder documents, using Google Apps Script and
 2. Paste G-Drive Folder URL
 3. Wait for text extraction + embedding
 4. In Sheet where file embeddings + metadata are shown:
-    a. In Google Sheets Toolbar: GPT Tools > Folder Q&A
-    b. Converse with folder content
+   - a. In Google Sheets Toolbar: GPT Tools > Folder Q&A
+   - b. Converse with folder content
 
 Folder data will be stored in the currently active google sheet - any data in there at the time of embedding will be overwritten.
 
@@ -22,13 +27,13 @@ If you want to maintain current folder data and Q&A with another folder, open up
 
 ## Limitations
 1. Extracts text from the following document types:
-    a. PDF
-    b. Microsoft Word
-    c. Google Doc
-    Any other file types will be ignored.
-2. No pagination set up for Drive API, so max documents processed = 100
+   - a. PDF
+   - b. Microsoft Word
+   - c. Google Doc
+   - Any other file types will be ignored.
+2. No pagination handling set up for Drive API, so max documents processed = 100
 3. Batches embeddings in one HTTP request to `https://api.openai.com/v1/embeddings`
-    a. Max embeddings determined by your OpenAI limits for your chosen embedding model
+   - a. Max embeddings determined by your OpenAI limits for your chosen embedding model. If tokens to embed exceeds this limit, process will fail.
 
 ## Prerequisites
 
@@ -120,5 +125,3 @@ If you want to maintain current folder data and Q&A with another folder, open up
     - `MAX_CHAT_CONTEXT_TOKENS` = `50000`
         -Amount of tokens each conversation will maintain, before removing previously passed context
     - `OPENAI_API_KEY` = `{your_openai_api_key}`
-
-    Replace `{your_openai_api_key}` with your actual OpenAI API key.
