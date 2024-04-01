@@ -31,9 +31,10 @@ If you want to maintain current folder data and Q&A with another folder, open up
    - b. Microsoft Word
    - c. Google Doc
    - Any other file types will be ignored.
-2. No pagination handling set up for Drive API, so max documents processed = 100
-3. Batches embeddings in one HTTP request to `https://api.openai.com/v1/embeddings`
-   - a. Max embeddings determined by your OpenAI limits for your chosen embedding model. If tokens to embed exceeds this limit, process will fail.
+2. Embeddings sent in batches of `EMBEDDING_BATCH_LIMIT` in HTTP requests to `https://api.openai.com/v1/embeddings`
+   - a. No timeout set for batches
+   - b. Runs slowly if there are multiple batches. 4 batches of ~1,000,000 tokens (~10K pages) will take ~60 seconds. Can improve GAS handling 
+ of concurrency at some point...
 
 ## Prerequisites
 
@@ -123,5 +124,7 @@ If you want to maintain current folder data and Q&A with another folder, open up
         - Max Chunk Size for each text chunk (aiming for ~1250 tokens per chunk)
     - `EMBEDDING_MODEL` = `text-embedding-ada-002`
     - `MAX_CHAT_CONTEXT_TOKENS` = `50000`
-        -Amount of tokens each conversation will maintain, before removing previously passed context
+        - Amount of tokens each conversation will maintain, before removing previously passed context
+    - `EMBEDDING_BATCH_LIMIT` = `1000000`
+        - Limit will depend on OpenAI TPM limit for embedding model. Be conservative, as tokens are estimated by (char_length / 4)
     - `OPENAI_API_KEY` = `{your_openai_api_key}`
